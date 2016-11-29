@@ -51,7 +51,8 @@ class Observed(object):
     """
     
     def __init__(self, a_min=None, a_max=None, e_min=None, e_max=None, \
-                 R_min=None, R_max=None, p_min=None, p_max=None):
+                 R_min=None, R_max=None, p_min=None, p_max=None, smin = None, \
+                 smax = None, dmag0 = None):
         # get population information
         self.pop = Population.Population(a_min=a_min, a_max=a_max, e_min=e_min, \
                                          e_max=e_max, R_min=R_min, R_max=R_max, \
@@ -66,21 +67,159 @@ class Observed(object):
         self.rmax = self.pop.arange[1]*(1.0+self.pop.erange[1])
         self.zmin = self.pop.prange[0]*self.pop.Rrange[0]**2
         self.zmax = self.pop.prange[1]*self.pop.Rrange[1]**2
+        
         # get inverse of phase function
         beta = np.linspace(0.0, np.pi, 1000)
         Phis = self.pop.Phi(beta)
         self.Phiinv = interpolate.InterpolatedUnivariateSpline(Phis[::-1],beta[::-1],k=3,ext=1)
+        
+        # populate geometric and photometric detection values
+        if smin == None:
+            self.smin = 1.0 # AU
+        else:
+            self.smin = smin # AU
+        if smax == None:
+            self.smax = 16.0 # AU
+        else:
+            self.smax = smax # AU
+        if dmag0 == None:
+            self.dmag0 = 25.0
+        else:
+            self.dmag0 = dmag0
+            
         # get pdf of orbital radius
         self.f_ronegrandv = np.vectorize(self.f_ronegrand)
         self.manyf_r = np.vectorize(self.onef_r)
         self.f_r = self.getf_r()
+        
         # get pdf of z = p*R**2
         self.manyf_z = np.vectorize(self.onef_z)
         self.f_z = self.getf_z()
+        
         # get pdf of f_ap
+        
         # get pdf of f_ep
+#        self.intaeEv = np.vectorize(self.intaeE)
+#        self.intav = np.vectorize(self.inta)
+        
         # get pdf of f_Rp
+        self.intpRrv = np.vectorize(self.intpRr)
+        self.intpv = np.vectorize(self.intp)
+        self.f_Rp = self.getf_Rp()
+        
         # get pdf of f_pp
+    
+    def getf_ap(self):
+        """Returns a callable probability density function for observed 
+        semi-major axis"""
+        a = np.linspace(self.pop.arange[0],self.pop.arange[1],201)
+        grand = self.pop.f_a(a)*self.intev(a)
+        ca = integrate.simps(grand,a)
+        f_ap = interpolate.InterpolatedUnivariateSpline(a,grand/ca,k=3,ext=1)
+    
+        return f_ap
+    
+    def getf_ep(self):
+        """Returns a callable probability density function for observed
+        eccentricity"""
+        e = np.linspace(self.pop.erange[0],self.pop.erange[1],51)
+        grand = self.pop.f_e(e)*self.intav(e)
+        ce = integrate.simps(grand,e)
+        f_ep = interpolate.InterpolatedUnivariateSpline(e,grand/ce,k=3,ext=1)
+        
+        return f_ep
+        
+    def getf_Rp(self):
+        """Returns a callable probability density function for observed
+        planetary radius"""
+        R = np.linspace(self.pop.Rrange[0],self.pop.Rrange[1],201)
+        grand = self.pop.f_R(R)*self.intpv(R)
+        cR = integrate.simps(grand,R)
+        f_Rp = interpolate.InterpolatedUnivariateSpline(R,grand/cR,k=3,ext=1)
+        
+        return f_Rp
+        
+    def intp(self, R):
+        """Returns integrand for probability density function for observed
+        planetary radius"""
+
+        grand = lambda p: self.pop.f_p(p)*self.intpRrv(p,R)
+        f = integrate.fixed_quad(grand,self.pop.prange[0],self.pop.prange[1],n=5)[0]
+        
+        return f
+        
+    def intpRr(self, p, R):
+        """Returns integrand for probability density function for observed 
+        planetary radius"""
+        # p is a scalar, R is a scalar
+        grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
+        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
+        
+        return f
+    
+    def intRpbeta(self, r, R, p):
+        """Returns innermost integral for determining probability density 
+        functions for planetary radius or geometric albedo"""
+        # r is a vector, R is a scalar, p is a scalar
+        r = np.array(r,ndmin=1,copy=False)
+        f = np.zeros(r.shape)
+        # case 1
+        rb = r[r<self.smax]
+        fb = f[r<self.smax]
+        dl = -2.5*np.log10(self.zmax/rb**2)
+        buval = 10.0**(-0.4*self.dmag0)*rb**2/(p*R**2)
+        # limits on beta
+        b1 = np.arcsin(self.smin/rb)
+        b2 = np.pi - b1
+        b3 = self.Phiinv(buval)
+        b3[buval>1.0] = 0.0
+        bl = b1
+        bu = b2
+        bu[b3<b2] = b3[b3<b2]
+        # value of integral
+        fb = 0.5*(-np.cos(bu)+np.cos(bl))
+        fb[dl>self.dmag0] = 0.0
+        # case 2
+        ra = r[r>self.smax]
+        fa = f[r>self.smax]
+        dl = -2.5*np.log10(self.zmax/ra**2)
+        buval = 10.0**(-0.4*self.dmag0)*ra**2/(p*R**2)
+        # limits on beta
+        b1 = np.arcsin(self.smin/ra)
+        b2 = np.arcsin(self.smax/ra)
+        b3 = np.pi - b2
+        b4 = np.pi - b1
+        b5 = self.Phiinv(buval)
+        b5[buval>1.0] = 0.0
+        # lower integral limits
+        bl1 = b1
+        bu1 = b2
+        bu1[b5<b2] = b5[b5<b2]
+        # upper integral limits
+        bl2 = b3
+        bl2[b5<b3] = 0.0
+        bu2 = b4
+        bu2[b5<b4] = b5
+        bu2[b5<b3] = 0.0
+        # value of integral
+        fa = 0.5*(-np.cos(bu1)+np.cos(bl1)) + 0.5*(-np.cos(bu2)+np.cos(bl2))
+        fa[dl>self.dmag0] = 0.0
+        f[r<self.smax] = fb
+        f[r>self.smax] = fa
+
+        return f
+        
+#    def inta(e):
+#        """Returns integrand over semi-major axis to find observed probability
+#        density function for eccentricity"""
+#        # e is a scalar
+##    a = np.linspace(amin,amax,201)
+##    grand = f_a(a)*intaeEv(a,e)
+##    f = integrate.simps(grand,a)
+#        grand = lambda a: f_a(a)*intaeEv(a,e)
+#        f = integrate.fixed_quad(grand,amin,amax,n=100)[0]
+#
+#        return f
         
     def getf_z(self):
         """Returns a callable probability density function for z = p*R**2"""
