@@ -108,6 +108,9 @@ class Observed(object):
         self.f_Rp = self.getf_Rp()
         
         # get pdf of f_pp
+        self.intRprv = np.vectorize(self.intRpr)
+        self.intRv = np.vectorize(self.intR)
+        self.f_pp = self.getf_pp()
     
     def getf_ap(self):
         """Returns a callable probability density function for observed 
@@ -139,6 +142,36 @@ class Observed(object):
         
         return f_Rp
         
+    def getf_pp(self):
+        """Returns a callable probability density function for observed
+        geometric albedo"""
+        p = np.linspace(self.pop.prange[0],self.pop.prange[1],201)
+        grand = self.pop.f_p(p)*self.intRv(p)
+        cp = integrate.simps(grand,p)
+        f_pp = interpolate.InterpolatedUnivariateSpline(p,grand/cp,k=3,ext=1)
+
+        return f_pp
+
+# f_p'(p') helper functions
+    def intR(self, p):
+        """Returns integrand for probability density function for observed
+        geometric albedo"""
+        # p is a scalar
+        grand = lambda R: self.pop.f_R(R)*self.intRprv(R,p)
+        f = integrate.fixed_quad(grand,self.pop.Rrange[0],self.pop.Rrange[1],n=5)[0]
+        
+        return f
+        
+    def intRpr(self, R, p):
+        """Returns integrand for probability density function for observed
+        geometric albedo"""
+        # R is a scalar, p is a scalar
+        grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
+        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
+        
+        return f
+        
+# f_R'(R') helper functions        
     def intp(self, R):
         """Returns integrand for probability density function for observed
         planetary radius"""
@@ -220,7 +253,8 @@ class Observed(object):
 #        f = integrate.fixed_quad(grand,amin,amax,n=100)[0]
 #
 #        return f
-        
+
+# f_z(z) helper functions        
     def getf_z(self):
         """Returns a callable probability density function for z = p*R**2"""
         z = np.linspace(self.zmin,self.zmax,200)
@@ -259,7 +293,8 @@ class Observed(object):
         f = 1.0/(2.0*np.sqrt(z*p))*self.pop.f_R(np.sqrt(z/p))*self.pop.f_p(p)
         
         return f
-        
+
+# f_r(r) helper functions        
     def getf_r(self):
         """Returns a callable probability density function for orbital radius"""
         r = np.linspace(self.rmin,self.rmax,200)
