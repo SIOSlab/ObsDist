@@ -7,7 +7,6 @@ Created on Mon Nov 28 15:14:56 2016
 
 import numpy as np
 import matplotlib.pyplot as plt
-import astropy.units as u
 
 import ObsDist.Population as Population
 import ObsDist.Observed as Observed
@@ -21,7 +20,7 @@ dmag0 = 25.0
 
 #%% planet population parameters
 a_min = 0.5 # AU
-a_max = 25.0 # AU
+a_max = 5.0 # AU
 e_min = 0.0
 e_max = 0.35
 p_min = 0.2
@@ -156,7 +155,7 @@ Rs = 0.5*(Redges[:-1]+Redges[1:])
 R = np.linspace(R_min,R_max,200)
 fR = pop.f_R(R)
 fRp = obs.f_Rp(R)
-#%%
+
 fig3 = plt.figure(3)
 ax3 = fig3.add_subplot(111)
 ax3.plot(Rs,HRp,'or',markerfacecolor='None',label='Monte Carlo')
@@ -169,7 +168,7 @@ ax3.tick_params(axis='both', which='major', labelsize=16)
 ax3.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
 ax3.legend()
 fig3.show()
-#%%
+
 # f_p'(p') plot
 Hpp /= numiter
 ps = 0.5*(pedges[:-1]+pedges[1:])
@@ -188,31 +187,3 @@ ax4.set_ylabel(r'$ f_{\bar{p}}\left(p\right) \; / \; f_{\bar{p}^\prime}\left(p^\
 ax4.tick_params(axis='both', which='major', labelsize=16)
 ax4.legend(loc=4)
 fig4.show()
-
-b = np.linspace(0.0,np.pi,100)
-Phi = pop.Phi(b)
-fig5 = plt.figure(5)
-ax5 = fig5.add_subplot(111)
-ax5.plot(b,Phi,'-b')
-ax5.set_ylim(ymin=0.0)
-ax5.set_xlabel(r'$ \beta $', fontsize=18)
-ax5.set_ylabel(r'$ \Phi\left(\beta\right) $', fontsize=18)
-ax5.tick_params(axis='both', which='major', labelsize=16)
-fig5.show()
-
-# f_r plot
-Hr /= numiter
-rs = 0.5*(redges[:-1]+redges[1:])
-r = np.linspace(r_min,r_max,200)
-fr = obs.f_r(r)
-#%%
-fig6 = plt.figure(6)
-ax6 = fig6.add_subplot(111)
-ax6.plot(rs,Hr,'or',markerfacecolor='None',label='Monte Carlo')
-ax6.plot(r,fr,'r--',linewidth=2.0,label='Assumed')
-#ax6.plot(p,fpp,'b-',linewidth=2.0,label=r'Observed')
-ax6.set_xlabel(r'$ r $', fontsize=18)
-ax6.set_ylabel(r'$ f_{\bar{r}}\left(r\right) $', fontsize=18)
-ax6.tick_params(axis='both', which='major', labelsize=16)
-ax6.legend()
-fig6.show()

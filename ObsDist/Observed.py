@@ -6,7 +6,6 @@ Created on Tue Nov 29 10:02:43 2016
 """
 import numpy as np
 import scipy.interpolate as interpolate
-import scipy.optimize as optimize
 import scipy.integrate as integrate
 
 import ObsDist.Population as Population
