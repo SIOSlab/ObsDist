@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 
 import ObsDist.Population as Population
+import ObsDist.Observed as Observed
 from ObsDist.InverseTransformSampler import InverseTransformSampler
 from ObsDist.eccanom import eccanom
 
@@ -34,8 +35,10 @@ z_min = p_min*R_min**2 # AU**2
 z_max = p_max*R_max**2 # AU**2
 
 # get saved planet population distributions
-pop = Population.Population(a_min=a_min,a_max=a_max,R_min=R_min,R_max=R_max,p_min=p_min,p_max=p_max)
+pop = Population.Population(a_min=a_min,a_max=a_max,e_min=e_min,e_max=e_max,R_min=R_min,R_max=R_max,p_min=p_min,p_max=p_max)
 
+# get observed planet population distributions
+obs = Observed.Observed(a_min=a_min,a_max=a_max,e_min=e_min,e_max=e_max,R_min=R_min,R_max=R_max,p_min=p_min,p_max=p_max)
 #%% Monte Carlo sampling to plot
 a_sampler = InverseTransformSampler(pop.f_a,a_min,a_max)
 e_sampler = InverseTransformSampler(pop.f_e,e_min,e_max)
@@ -80,11 +83,14 @@ for i in xrange(numiter):
     PhiMC = pop.Phi(betaMC)
     dMag = -2.5*np.log10(zMC/d**2*PhiMC) # difference in magnitude
     if i == 0:
+        Hr, redges = np.histogram(d,bins=bins,range=[r_min,r_max],density=True)
         HRp, Redges = np.histogram(RMC[(s>smin) & (s<smax) & (dMag<dmag0)],bins=bins,range=[R_min,R_max],density=True)
         Hpp, pedges = np.histogram(pMC[(s>smin) & (s<smax) & (dMag<dmag0)],bins=bins,range=[p_min,p_max],density=True)
         Hap, aedges = np.histogram(aMC[(s>smin) & (s<smax) & (dMag<dmag0)],bins=bins,range=[a_min,a_max],density=True)
         Hep, eedges = np.histogram(eMC[(s>smin) & (s<smax) & (dMag<dmag0)],bins=bins,range=[e_min,e_max],density=True)
     else:
+        hr, redges = np.histogram(d,bins=bins,range=[r_min,r_max],density=True)
+        Hr += hr
         hRp, Redges = np.histogram(RMC[(s>smin) & (s<smax) & (dMag<dmag0)],bins=bins,range=[R_min,R_max],density=True)
         HRp += hRp
         hpp, pedges = np.histogram(pMC[(s>smin) & (s<smax) & (dMag<dmag0)],bins=bins,range=[p_min,p_max],density=True)
@@ -111,12 +117,13 @@ Hap /= numiter
 aa = 0.5*(aedges[:-1]+aedges[1:])
 a = np.linspace(a_min,a_max,200)
 fa = pop.f_a(a)
+fap = obs.f_ap(a)
 
 fig1 = plt.figure(1)
 ax1 = fig1.add_subplot(111)
 ax1.plot(aa,Hap,'or',markerfacecolor='None',label='Monte Carlo')
 ax1.plot(a,fa,'r--',linewidth=2.0,label='Assumed')
-#ax1.plot(a,fap,'b-',linewidth=2.0,label=r'Observed')
+ax1.plot(a,fap,'b-',linewidth=2.0,label=r'Observed')
 ax1.set_ylim(ymin=0.0)
 ax1.set_xlabel(r'$ a \; / \; a^\prime $ (AU)', fontsize=18)
 ax1.set_ylabel(r'$ f_{\bar{a}}\left(a\right) \; / \; f_{\bar{a}^\prime}\left(a^\prime\right) $', fontsize=18)
@@ -129,12 +136,13 @@ Hep /= numiter
 es = 0.5*(eedges[:-1]+eedges[1:])
 e = np.linspace(e_min,e_max,200)
 fe = pop.f_e(e)
+fep = obs.f_ep(e)
 
 fig2 = plt.figure(2)
 ax2 = fig2.add_subplot(111)
 ax2.plot(es,Hep,'or',markerfacecolor='None',label='Monte Carlo')
 ax2.plot(e,fe,'r--',linewidth=2.0,label='Assumed')
-#ax2.plot(e,fep,'b-',linewidth=2.0,label=r'Observed')
+ax2.plot(e,fep,'b-',linewidth=2.0,label=r'Observed')
 ax2.set_ylim(ymin=2.5,ymax=3.0)
 ax2.set_xlabel(r'$ e \; / \; e^\prime $', fontsize=18)
 ax2.set_ylabel(r'$ f_{\bar{e}}\left(e\right) \; / \; f_{\bar{e}^\prime}\left(e^\prime\right) $', fontsize=18)
@@ -147,30 +155,33 @@ HRp /= numiter
 Rs = 0.5*(Redges[:-1]+Redges[1:])
 R = np.linspace(R_min,R_max,200)
 fR = pop.f_R(R)
-
+fRp = obs.f_Rp(R)
+#%%
 fig3 = plt.figure(3)
 ax3 = fig3.add_subplot(111)
-ax3.semilogx(Rs,HRp,'or',markerfacecolor='None',label='Monte Carlo')
-ax3.semilogx(R,fR,'r--',linewidth=2.0,label='Assumed')
-#ax3.plot(R,fRp,'b-',linewidth=2.0,label=r'Observed')
+ax3.plot(Rs,HRp,'or',markerfacecolor='None',label='Monte Carlo')
+ax3.plot(R,fR,'r--',linewidth=2.0,label='Assumed')
+ax3.plot(R,fRp,'b-',linewidth=2.0,label=r'Observed')
 ax3.set_ylim(ymin=0.0)
 ax3.set_xlabel(r'$ R \; / \; R^\prime $ (AU)', fontsize=18)
 ax3.set_ylabel(r'$ f_{\bar{R}}\left(R\right) \; / \; f_{\bar{R}^\prime}\left(R^\prime\right) $', fontsize=18)
 ax3.tick_params(axis='both', which='major', labelsize=16)
+ax3.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
 ax3.legend()
 fig3.show()
-
+#%%
 # f_p'(p') plot
 Hpp /= numiter
 ps = 0.5*(pedges[:-1]+pedges[1:])
 p = np.linspace(p_min,p_max,200)
 fp = pop.f_p(p)
+fpp = obs.f_pp(p)
 
 fig4 = plt.figure(4)
 ax4 = fig4.add_subplot(111)
 ax4.plot(ps,Hpp,'or',markerfacecolor='None',label='Monte Carlo')
 ax4.plot(p,fp,'r--',linewidth=2.0,label='Assumed')
-#ax4.plot(p,fpp,'b-',linewidth=2.0,label=r'Observed')
+ax4.plot(p,fpp,'b-',linewidth=2.0,label=r'Observed')
 ax4.set_ylim(ymin=5.0)
 ax4.set_xlabel(r'$ p \; / \; p^\prime $', fontsize=18)
 ax4.set_ylabel(r'$ f_{\bar{p}}\left(p\right) \; / \; f_{\bar{p}^\prime}\left(p^\prime\right) $', fontsize=18)
@@ -188,3 +199,20 @@ ax5.set_xlabel(r'$ \beta $', fontsize=18)
 ax5.set_ylabel(r'$ \Phi\left(\beta\right) $', fontsize=18)
 ax5.tick_params(axis='both', which='major', labelsize=16)
 fig5.show()
+
+# f_r plot
+Hr /= numiter
+rs = 0.5*(redges[:-1]+redges[1:])
+r = np.linspace(r_min,r_max,200)
+fr = obs.f_r(r)
+#%%
+fig6 = plt.figure(6)
+ax6 = fig6.add_subplot(111)
+ax6.plot(rs,Hr,'or',markerfacecolor='None',label='Monte Carlo')
+ax6.plot(r,fr,'r--',linewidth=2.0,label='Assumed')
+#ax6.plot(p,fpp,'b-',linewidth=2.0,label=r'Observed')
+ax6.set_xlabel(r'$ r $', fontsize=18)
+ax6.set_ylabel(r'$ f_{\bar{r}}\left(r\right) $', fontsize=18)
+ax6.tick_params(axis='both', which='major', labelsize=16)
+ax6.legend()
+fig6.show()

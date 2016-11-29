@@ -97,10 +97,12 @@ class Observed(object):
         self.f_z = self.getf_z()
         
         # get pdf of f_ap
-        
-        # get pdf of f_ep
         self.intaezv = np.vectorize(self.intaez)
         self.intaeEv = np.vectorize(self.intaeE)
+        self.intev = np.vectorize(self.inte)
+        self.f_ap = self.getf_ap()
+        
+        # get pdf of f_ep
         self.intav = np.vectorize(self.inta)
         self.f_ep = self.getf_ep()
         
@@ -154,6 +156,16 @@ class Observed(object):
 
         return f_pp
         
+# f_a'(a') helper functions
+    def inte(self, a):
+        """Returns integral over eccentricity for probability density function
+        for observed semi-major axis"""
+        # a is a scalar
+        grand = lambda e: self.pop.f_e(e)*self.intaeEv(a,e)
+        f = integrate.fixed_quad(grand,self.pop.erange[0],self.pop.erange[1],n=5)[0]
+
+        return f
+
 # f_e'(e') helper functions
     def inta(self, e):
         """Returns integral over semi-major axis for probability density 
@@ -168,7 +180,6 @@ class Observed(object):
         """Returns integral over eccentric anomaly for probability density 
         function for observed eccentricity"""
         # a is a scalar, e is a scalar
-        E = np.linspace(0.0,2.0*np.pi,11)
         grand = lambda E: (1.0 - e*np.cos(E))*self.intaezv(E,a,e)
         f = integrate.fixed_quad(grand,0.0,2.0*np.pi,n=5)[0]
 
