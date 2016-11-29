@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 v1: Created on November 28, 2016
-author: Daniel Garrett (dg622@cornell.edu)
+author: dg622@cornell.edu
 """
 
 import numpy as np

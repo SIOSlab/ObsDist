@@ -75,10 +75,51 @@ class Observed(object):
         self.manyf_r = np.vectorize(self.onef_r)
         self.f_r = self.getf_r()
         # get pdf of z = p*R**2
+        self.manyf_z = np.vectorize(self.onef_z)
+        self.f_z = self.getf_z()
         # get pdf of f_ap
         # get pdf of f_ep
         # get pdf of f_Rp
         # get pdf of f_pp
+        
+    def getf_z(self):
+        """Returns a callable probability density function for z = p*R**2"""
+        z = np.linspace(self.zmin,self.zmax,200)
+        fz = self.manyf_z(z)
+        f_z = interpolate.InterpolatedUnivariateSpline(z,fz,k=3,ext=1)
+        
+        return f_z
+        
+    def onef_z(self, z):
+        """Returns probability density function value for single value of
+        z = p*R**2"""
+        # z is a scalar
+        if (z < self.zmin) or (z > self.zmax):
+            f = 0.0
+        else:
+            if (self.pconst & self.Rconst):
+                f = 1.0
+            elif self.pconst:
+                f = 1.0/(2.0*np.sqrt(self.pop.prange[0]*z))*self.pop.f_R(np.sqrt(z/self.pop.prange[0]))
+            elif self.Rconst:
+                f = 1.0/self.pop.Rrange[0]**2*self.pop.f_p(z/self.pop.Rrange[0]**2)
+            else:
+                p1 = z/self.pop.Rrange[1]**2
+                p2 = z/self.pop.Rrange[0]**2
+                if p1 < self.pop.prange[0]:
+                    p1 = self.pop.prange[0]
+                if p2 > self.pop.prange[1]:
+                    p2 = self.pop.prange[1]
+                f = integrate.fixed_quad(self.pgrand,p1,p2,args=(z,),n=200)[0]
+                
+        return f
+        
+    def pgrand(self, p, z):
+        """Returns integrand for probability density function for z = p*R**2"""
+        # p is a vector, z is a scalar
+        f = 1.0/(2.0*np.sqrt(z*p))*self.pop.f_R(np.sqrt(z/p))*self.pop.f_p(p)
+        
+        return f
         
     def getf_r(self):
         """Returns a callable probability density function for orbital radius"""
@@ -96,7 +137,7 @@ class Observed(object):
             f = 0.0
         else:
             if (self.aconst & self.econst):
-                if self.erange[0] == 0.0:
+                if self.pop.erange[0] == 0.0:
                     f = self.pop.f_a(r)
                 else:
                     if r > self.pop.arange[0]*(1.0-self.pop.erange[0]):
@@ -119,7 +160,7 @@ class Observed(object):
                             low = self.pop.erange[0]
                         else:
                             low = etest2
-                        f = integrate.fixed_quad(self.rgrandac, low, self.pop.erange[1], args=(self.pop.arange[0],r), n=200)[0]
+                    f = integrate.fixed_quad(self.rgrandac, low, self.pop.erange[1], args=(self.pop.arange[0],r), n=200)[0]
             elif self.econst:
                 if self.pop.erange[0] == 0.0:
                     f = self.pop.f_a(r)
