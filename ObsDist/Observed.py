@@ -99,8 +99,10 @@ class Observed(object):
         # get pdf of f_ap
         
         # get pdf of f_ep
-#        self.intaeEv = np.vectorize(self.intaeE)
-#        self.intav = np.vectorize(self.inta)
+        self.intaezv = np.vectorize(self.intaez)
+        self.intaeEv = np.vectorize(self.intaeE)
+        self.intav = np.vectorize(self.inta)
+        self.f_ep = self.getf_ep()
         
         # get pdf of f_Rp
         self.intpRrv = np.vectorize(self.intpRr)
@@ -151,30 +153,92 @@ class Observed(object):
         f_pp = interpolate.InterpolatedUnivariateSpline(p,grand/cp,k=3,ext=1)
 
         return f_pp
+        
+# f_e'(e') helper functions
+    def inta(self, e):
+        """Returns integral over semi-major axis for probability density 
+        function for observed eccentricity"""
+        # e is a scalar
+        grand = lambda a: self.pop.f_a(a)*self.intaeEv(a,e)
+        f = integrate.fixed_quad(grand,self.pop.arange[0],self.pop.arange[1],n=100)[0]
 
-# f_p'(p') helper functions
-    def intR(self, p):
-        """Returns integrand for probability density function for observed
-        geometric albedo"""
-        # p is a scalar
-        grand = lambda R: self.pop.f_R(R)*self.intRprv(R,p)
-        f = integrate.fixed_quad(grand,self.pop.Rrange[0],self.pop.Rrange[1],n=5)[0]
+        return f
+        
+    def intaeE(self, a, e):
+        """Returns integral over eccentric anomaly for probability density 
+        function for observed eccentricity"""
+        # a is a scalar, e is a scalar
+        E = np.linspace(0.0,2.0*np.pi,11)
+        grand = lambda E: (1.0 - e*np.cos(E))*self.intaezv(E,a,e)
+        f = integrate.fixed_quad(grand,0.0,2.0*np.pi,n=5)[0]
+
+        return f
+        
+    def intaez(self, E, a, e):
+        """Returns integral over z = p*R**2 for probability density functions
+        for observed eccentricity and semi-major axis"""
+        # E, a, e are all scalars
+        r = a*(1.0-e*np.cos(E))
+        grand = lambda z: self.f_z(z)*self.intaeb(r,z)
+        f = integrate.fixed_quad(grand, self.zmin, self.zmax, n=5)[0]
         
         return f
         
-    def intRpr(self, R, p):
-        """Returns integrand for probability density function for observed
-        geometric albedo"""
-        # R is a scalar, p is a scalar
-        grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
-        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
-        
+    def intaeb(self, r, z):
+        """Returns integral over phase angle for probability density functions
+        for observed eccentricity and semi-major axis"""
+        # r is a scalar, but z can be a vector
+        z = np.array(z,ndmin=1,copy=False)
+        f = np.zeros(z.shape)
+        # case 1
+        if (r < self.smax) and (r > self.smin):
+            dl = -2.5*np.log10(z/r**2)
+            buval = 10.0**(-0.4*self.dmag0)*r**2/z
+            # limits on beta
+            b1 = np.arcsin(self.smin/r)
+            b2 = np.pi - b1
+            b3 = self.Phiinv(buval)
+            b3[buval>1.0] = 0.0
+            bl = b1
+            bu = b3
+            bu[b3>b2] = b2
+            # value of integral
+            f = 0.5*(-np.cos(bu)+np.cos(bl))
+            f[dl>self.dmag0] = 0.0
+        # case 2
+        elif r > self.smax:
+            r = np.array(r,ndmin=1,copy=False)
+            dl = -2.5*np.log10(z/r**2)
+            buval = 10.0**(-0.4*self.dmag0)*r**2/z
+            # limits on beta
+            b1 = np.arcsin(self.smin/r)
+            b2 = np.arcsin(self.smax/r)
+            b3 = np.pi - b2
+            b4 = np.pi - b1
+            b5 = self.Phiinv(buval)
+            b5[buval>1.0] = 0.0
+            # lower integral limits
+            bl1 = b1
+            bu1 = b5
+            bu1[b5>b2] = b2
+            # upper integral limits
+            bl2 = b5
+            bl2[b5<b3] = 0.0
+            bu2 = b5
+            bu2[b5>b4] = b4
+            bu2[b5<b3] = 0.0
+            # value of integral
+            f = 0.5*(-np.cos(bu1)+np.cos(bl1)) + 0.5*(-np.cos(bu2)+np.cos(bl2))
+            f[dl>self.dmag0] = 0.0
+        else:
+            f = 0.0
+
         return f
         
 # f_R'(R') helper functions        
     def intp(self, R):
-        """Returns integrand for probability density function for observed
-        planetary radius"""
+        """Returns integral over geometric albedo for probability density 
+        function for observed planetary radius"""
 
         grand = lambda p: self.pop.f_p(p)*self.intpRrv(p,R)
         f = integrate.fixed_quad(grand,self.pop.prange[0],self.pop.prange[1],n=5)[0]
@@ -182,8 +246,8 @@ class Observed(object):
         return f
         
     def intpRr(self, p, R):
-        """Returns integrand for probability density function for observed 
-        planetary radius"""
+        """Returns integral over orbital radius for probability density 
+        function for observed planetary radius"""
         # p is a scalar, R is a scalar
         grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
         f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
@@ -191,8 +255,8 @@ class Observed(object):
         return f
     
     def intRpbeta(self, r, R, p):
-        """Returns innermost integral for determining probability density 
-        functions for planetary radius or geometric albedo"""
+        """Returns innermost integral (over beta) for determining probability 
+        density functions for planetary radius or geometric albedo"""
         # r is a vector, R is a scalar, p is a scalar
         r = np.array(r,ndmin=1,copy=False)
         f = np.zeros(r.shape)
@@ -242,17 +306,24 @@ class Observed(object):
 
         return f
         
-#    def inta(e):
-#        """Returns integrand over semi-major axis to find observed probability
-#        density function for eccentricity"""
-#        # e is a scalar
-##    a = np.linspace(amin,amax,201)
-##    grand = f_a(a)*intaeEv(a,e)
-##    f = integrate.simps(grand,a)
-#        grand = lambda a: f_a(a)*intaeEv(a,e)
-#        f = integrate.fixed_quad(grand,amin,amax,n=100)[0]
-#
-#        return f
+# f_p'(p') helper functions
+    def intR(self, p):
+        """Returns integral over planetary radius for probability density 
+        function for observed geometric albedo"""
+        # p is a scalar
+        grand = lambda R: self.pop.f_R(R)*self.intRprv(R,p)
+        f = integrate.fixed_quad(grand,self.pop.Rrange[0],self.pop.Rrange[1],n=5)[0]
+        
+        return f
+        
+    def intRpr(self, R, p):
+        """Returns integral over orbital radius for probability density 
+        function for observed geometric albedo"""
+        # R is a scalar, p is a scalar
+        grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
+        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
+        
+        return f
 
 # f_z(z) helper functions        
     def getf_z(self):
@@ -362,8 +433,8 @@ class Observed(object):
         return f
         
     def f_ronegrand(self, a, r):
-        """Returns second integral for probability density function for 
-        orbital radius"""
+        """Returns integral over eccentricity for probability density function 
+        for orbital radius"""
         # a is a scalar, r is a scalar
         el = np.abs(1.0-r/a)
         if el < self.pop.erange[0]:
