@@ -15,7 +15,7 @@ from ObsDist.eccanom import eccanom
 
 #%% system parameters
 smin = 1.0 # AU
-smax = 16.0 # AU
+smax = 6.0 # AU
 dmag0 = 25.0
 
 #%% planet population parameters
@@ -38,6 +38,7 @@ pop = Population.Population(a_min=a_min,a_max=a_max,e_min=e_min,e_max=e_max,R_mi
 
 # get observed planet population distributions
 obs = Observed.Observed(a_min=a_min,a_max=a_max,e_min=e_min,e_max=e_max,R_min=R_min,R_max=R_max,p_min=p_min,p_max=p_max)
+
 #%% Monte Carlo sampling to plot
 a_sampler = InverseTransformSampler(pop.f_a,a_min,a_max)
 e_sampler = InverseTransformSampler(pop.f_e,e_min,e_max)
@@ -100,12 +101,6 @@ for i in xrange(numiter):
         Hep += hep
 
 #%% Plots
-
-R = np.linspace(pop.Rrange[0],pop.Rrange[1],100)
-fR = pop.f_R(R)
-p = np.linspace(pop.prange[0],pop.prange[1],100)
-fp = pop.f_p(p)
-
 # use TeX fonts
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')

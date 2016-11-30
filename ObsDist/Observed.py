@@ -52,6 +52,7 @@ class Observed(object):
     def __init__(self, a_min=None, a_max=None, e_min=None, e_max=None, \
                  R_min=None, R_max=None, p_min=None, p_max=None, smin = None, \
                  smax = None, dmag0 = None):
+        print 'Generating pdfs of observed planetary parameters'
         # get population information
         self.pop = Population.Population(a_min=a_min, a_max=a_max, e_min=e_min, \
                                          e_max=e_max, R_min=R_min, R_max=R_max, \
@@ -87,33 +88,41 @@ class Observed(object):
             self.dmag0 = dmag0
             
         # get pdf of orbital radius
+        print 'Generating pdf of orbital radius'
         self.f_ronegrandv = np.vectorize(self.f_ronegrand)
         self.manyf_r = np.vectorize(self.onef_r)
         self.f_r = self.getf_r()
         
         # get pdf of z = p*R**2
+        print 'Generating pdf of z = p*R**2'
         self.manyf_z = np.vectorize(self.onef_z)
         self.f_z = self.getf_z()
         
         # get pdf of f_ap
+        print 'Generating pdf of observed semi-major axis'
         self.intaezv = np.vectorize(self.intaez)
         self.intaeEv = np.vectorize(self.intaeE)
         self.intev = np.vectorize(self.inte)
         self.f_ap = self.getf_ap()
         
         # get pdf of f_ep
+        print 'Generating pdf of observed eccentricity'
         self.intav = np.vectorize(self.inta)
         self.f_ep = self.getf_ep()
         
         # get pdf of f_Rp
+        print 'Generating pdf of observed planetary radius'
         self.intpRrv = np.vectorize(self.intpRr)
         self.intpv = np.vectorize(self.intp)
         self.f_Rp = self.getf_Rp()
         
         # get pdf of f_pp
+        print 'Generating pdf of observed geometric albedo'
         self.intRprv = np.vectorize(self.intRpr)
         self.intRv = np.vectorize(self.intR)
         self.f_pp = self.getf_pp()
+        
+        print 'Observed planetary parameter pdfs generated'
     
     def getf_ap(self):
         """Returns a callable probability density function for observed 
@@ -180,7 +189,7 @@ class Observed(object):
         function for observed eccentricity"""
         # a is a scalar, e is a scalar
         grand = lambda E: (1.0 - e*np.cos(E))*self.intaezv(E,a,e)
-        f = integrate.fixed_quad(grand,0.0,2.0*np.pi,n=5)[0]
+        f = integrate.fixed_quad(grand,0.0,2.0*np.pi,n=20)[0]
 
         return f
         
@@ -190,7 +199,7 @@ class Observed(object):
         # E, a, e are all scalars
         r = a*(1.0-e*np.cos(E))
         grand = lambda z: self.f_z(z)*self.intaeb(r,z)
-        f = integrate.fixed_quad(grand, self.zmin, self.zmax, n=5)[0]
+        f = integrate.fixed_quad(grand, self.zmin, self.zmax, n=20)[0]
         
         return f
         
@@ -251,7 +260,7 @@ class Observed(object):
         function for observed planetary radius"""
 
         grand = lambda p: self.pop.f_p(p)*self.intpRrv(p,R)
-        f = integrate.fixed_quad(grand,self.pop.prange[0],self.pop.prange[1],n=5)[0]
+        f = integrate.fixed_quad(grand,self.pop.prange[0],self.pop.prange[1],n=20)[0]
         
         return f
         
@@ -260,7 +269,7 @@ class Observed(object):
         function for observed planetary radius"""
         # p is a scalar, R is a scalar
         grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
-        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
+        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=200)[0]
         
         return f
     
@@ -322,7 +331,7 @@ class Observed(object):
         function for observed geometric albedo"""
         # p is a scalar
         grand = lambda R: self.pop.f_R(R)*self.intRprv(R,p)
-        f = integrate.fixed_quad(grand,self.pop.Rrange[0],self.pop.Rrange[1],n=5)[0]
+        f = integrate.fixed_quad(grand,self.pop.Rrange[0],self.pop.Rrange[1],n=20)[0]
         
         return f
         
@@ -331,7 +340,7 @@ class Observed(object):
         function for observed geometric albedo"""
         # R is a scalar, p is a scalar
         grand = lambda r: self.f_r(r)*self.intRpbeta(r,R,p)
-        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=100)[0]
+        f = integrate.fixed_quad(grand,self.smin,self.rmax,n=200)[0]
         
         return f
 
