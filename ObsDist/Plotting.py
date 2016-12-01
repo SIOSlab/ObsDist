@@ -21,10 +21,8 @@ dmag0 = 25.0
 #%% planet population parameters
 a_min = 0.5 # AU
 a_max = 5.0 # AU
-a_min = a_max
 e_min = 0.0
 e_max = 0.35
-e_min = e_max
 p_min = 0.2
 p_max = 0.3
 R_min = 4.0107523e-5 # 6000 km in AU
