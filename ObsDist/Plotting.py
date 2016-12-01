@@ -21,8 +21,10 @@ dmag0 = 25.0
 #%% planet population parameters
 a_min = 0.5 # AU
 a_max = 5.0 # AU
+a_min = a_max
 e_min = 0.0
 e_max = 0.35
+e_min = e_max
 p_min = 0.2
 p_max = 0.3
 R_min = 4.0107523e-5 # 6000 km in AU
@@ -107,42 +109,48 @@ plt.rc('font', family='serif')
 plt.rc('legend',fontsize=16.0)
 
 # f_a'(a') plot
-Hap /= numiter
-aa = 0.5*(aedges[:-1]+aedges[1:])
-a = np.linspace(a_min,a_max,200)
-fa = pop.f_a(a)
-fap = obs.f_ap(a)
+if a_max > a_min:
+    Hap /= numiter
+    aa = 0.5*(aedges[:-1]+aedges[1:])
+    a = np.linspace(a_min,a_max,200)
+    fa = pop.f_a(a)
+    fap = obs.f_ap(a)
 
-fig1 = plt.figure(1)
-ax1 = fig1.add_subplot(111)
-ax1.plot(aa,Hap,'or',markerfacecolor='None',label='Monte Carlo')
-ax1.plot(a,fa,'r--',linewidth=2.0,label='Assumed')
-ax1.plot(a,fap,'b-',linewidth=2.0,label=r'Observed')
-ax1.set_ylim(ymin=0.0)
-ax1.set_xlabel(r'$ a \; / \; a^\prime $ (AU)', fontsize=18)
-ax1.set_ylabel(r'$ f_{\bar{a}}\left(a\right) \; / \; f_{\bar{a}^\prime}\left(a^\prime\right) $', fontsize=18)
-ax1.tick_params(axis='both', which='major', labelsize=16)
-ax1.legend()
-fig1.show()
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(111)
+    ax1.plot(aa,Hap,'or',markerfacecolor='None',label='Monte Carlo')
+    ax1.plot(a,fa,'r--',linewidth=2.0,label='Assumed')
+    ax1.plot(a,fap,'b-',linewidth=2.0,label=r'Observed')
+    ax1.set_ylim(ymin=0.0)
+    ax1.set_xlabel(r'$ a \; / \; a^\prime $ (AU)', fontsize=18)
+    ax1.set_ylabel(r'$ f_{\bar{a}}\left(a\right) \; / \; f_{\bar{a}^\prime}\left(a^\prime\right) $', fontsize=18)
+    ax1.tick_params(axis='both', which='major', labelsize=16)
+    ax1.legend()
+    fig1.show()
+else:
+    print 'Semi-major axis is constant, no pdf plot generated'
 
 # f_e'(e') plot
-Hep /= numiter
-es = 0.5*(eedges[:-1]+eedges[1:])
-e = np.linspace(e_min,e_max,200)
-fe = pop.f_e(e)
-fep = obs.f_ep(e)
+if e_max > e_min:
+    Hep /= numiter
+    es = 0.5*(eedges[:-1]+eedges[1:])
+    e = np.linspace(e_min,e_max,200)
+    fe = pop.f_e(e)
+    fep = obs.f_ep(e)
 
-fig2 = plt.figure(2)
-ax2 = fig2.add_subplot(111)
-ax2.plot(es,Hep,'or',markerfacecolor='None',label='Monte Carlo')
-ax2.plot(e,fe,'r--',linewidth=2.0,label='Assumed')
-ax2.plot(e,fep,'b-',linewidth=2.0,label=r'Observed')
-ax2.set_ylim(ymin=2.5,ymax=3.0)
-ax2.set_xlabel(r'$ e \; / \; e^\prime $', fontsize=18)
-ax2.set_ylabel(r'$ f_{\bar{e}}\left(e\right) \; / \; f_{\bar{e}^\prime}\left(e^\prime\right) $', fontsize=18)
-ax2.tick_params(axis='both', which='major', labelsize=16)
-ax2.legend(loc=4)
-fig2.show()
+    fig2 = plt.figure(2)
+    ax2 = fig2.add_subplot(111)
+    ax2.plot(es,Hep,'or',markerfacecolor='None',label='Monte Carlo')
+    ax2.plot(e,fe,'r--',linewidth=2.0,label='Assumed')
+    ax2.plot(e,fep,'b-',linewidth=2.0,label=r'Observed')
+    ax2.set_ylim(ymin=2.5,ymax=3.0)
+    ax2.set_xlabel(r'$ e \; / \; e^\prime $', fontsize=18)
+    ax2.set_ylabel(r'$ f_{\bar{e}}\left(e\right) \; / \; f_{\bar{e}^\prime}\left(e^\prime\right) $', fontsize=18)
+    ax2.tick_params(axis='both', which='major', labelsize=16)
+    ax2.legend(loc=4)
+    fig2.show()
+else:
+    print 'Eccentricity is constant, no pdf plot generated'
 
 # f_R'(R') plot
 if R_max > R_min:

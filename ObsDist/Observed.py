@@ -127,20 +127,34 @@ class Observed(object):
     def getf_ap(self):
         """Returns a callable probability density function for observed 
         semi-major axis"""
-        a = np.linspace(self.pop.arange[0],self.pop.arange[1],201)
-        grand = self.pop.f_a(a)*self.intev(a)
-        ca = integrate.simps(grand,a)
-        f_ap = interpolate.InterpolatedUnivariateSpline(a,grand/ca,k=3,ext=1)
+        if self.aconst:
+            print 'Semi-major axis is constant, f_ap will return 1.0'
+            f_ap = lambda a: 1.0
+        else:
+            a = np.linspace(self.pop.arange[0],self.pop.arange[1],201)
+            if self.econst:
+                grand = self.pop.f_a(a)*self.intaeEv(a,self.pop.erange[0])
+            else:
+                grand = self.pop.f_a(a)*self.intev(a)
+            ca = integrate.simps(grand,a)
+            f_ap = interpolate.InterpolatedUnivariateSpline(a,grand/ca,k=3,ext=1)
     
         return f_ap
     
     def getf_ep(self):
         """Returns a callable probability density function for observed
         eccentricity"""
-        e = np.linspace(self.pop.erange[0],self.pop.erange[1],51)
-        grand = self.pop.f_e(e)*self.intav(e)
-        ce = integrate.simps(grand,e)
-        f_ep = interpolate.InterpolatedUnivariateSpline(e,grand/ce,k=3,ext=1)
+        if self.econst:
+            print 'Eccentricity is constant, f_ep will return 1.0'
+            f_ep = lambda e: 1.0
+        else:
+            e = np.linspace(self.pop.erange[0],self.pop.erange[1],51)
+            if self.aconst:
+                grand = self.pop.f_e(e)*self.intaeEv(self.pop.arange[0],e)
+            else:
+                grand = self.pop.f_e(e)*self.intav(e)
+            ce = integrate.simps(grand,e)
+            f_ep = interpolate.InterpolatedUnivariateSpline(e,grand/ce,k=3,ext=1)
         
         return f_ep
         
