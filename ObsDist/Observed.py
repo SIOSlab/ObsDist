@@ -147,20 +147,34 @@ class Observed(object):
     def getf_Rp(self):
         """Returns a callable probability density function for observed
         planetary radius"""
-        R = np.linspace(self.pop.Rrange[0],self.pop.Rrange[1],201)
-        grand = self.pop.f_R(R)*self.intpv(R)
-        cR = integrate.simps(grand,R)
-        f_Rp = interpolate.InterpolatedUnivariateSpline(R,grand/cR,k=3,ext=1)
+        if self.Rconst:
+            print 'Planetary radius is a constant, f_Rp will return 1.0'
+            f_Rp = lambda R: 1.0
+        else:
+            R = np.linspace(self.pop.Rrange[0],self.pop.Rrange[1],201)
+            if self.pconst:
+                grand = self.pop.f_R(R)*self.intpRrv(self.pop.prange[0],R)
+            else:
+                grand = self.pop.f_R(R)*self.intpv(R)
+            cR = integrate.simps(grand,R)
+            f_Rp = interpolate.InterpolatedUnivariateSpline(R,grand/cR,k=3,ext=1)
         
         return f_Rp
         
     def getf_pp(self):
         """Returns a callable probability density function for observed
         geometric albedo"""
-        p = np.linspace(self.pop.prange[0],self.pop.prange[1],201)
-        grand = self.pop.f_p(p)*self.intRv(p)
-        cp = integrate.simps(grand,p)
-        f_pp = interpolate.InterpolatedUnivariateSpline(p,grand/cp,k=3,ext=1)
+        if self.pconst:
+            print 'Geometric albedo is a constant, f_pp will return 1.0'
+            f_pp = lambda p: 1.0
+        else:
+            p = np.linspace(self.pop.prange[0],self.pop.prange[1],201)
+            if self.Rconst:
+                grand = self.pop.f_p(p)*self.intpRrv(p,self.pop.Rrange[0])
+            else:
+                grand = self.pop.f_p(p)*self.intRv(p)
+            cp = integrate.simps(grand,p)
+            f_pp = interpolate.InterpolatedUnivariateSpline(p,grand/cp,k=3,ext=1)
 
         return f_pp
         
@@ -188,7 +202,11 @@ class Observed(object):
         """Returns integral over eccentric anomaly for probability density 
         function for observed eccentricity"""
         # a is a scalar, e is a scalar
-        grand = lambda E: (1.0 - e*np.cos(E))*self.intaezv(E,a,e)
+        if self.pconst and self.Rconst:
+            intaebv = np.vectorize(self.intaeb)
+            grand = lambda E: (1.0 - e*np.cos(E))*intaebv(E,a,e,self.pop.prange[0]*self.pop.Rrange[0]**2)
+        else:
+            grand = lambda E: (1.0 - e*np.cos(E))*self.intaezv(E,a,e)
         f = integrate.fixed_quad(grand,0.0,2.0*np.pi,n=20)[0]
 
         return f
@@ -197,18 +215,18 @@ class Observed(object):
         """Returns integral over z = p*R**2 for probability density functions
         for observed eccentricity and semi-major axis"""
         # E, a, e are all scalars
-        r = a*(1.0-e*np.cos(E))
-        grand = lambda z: self.f_z(z)*self.intaeb(r,z)
+        grand = lambda z: self.f_z(z)*self.intaeb(E,a,e,z)
         f = integrate.fixed_quad(grand, self.zmin, self.zmax, n=20)[0]
         
         return f
         
-    def intaeb(self, r, z):
+    def intaeb(self, E, a, e, z):
         """Returns integral over phase angle for probability density functions
         for observed eccentricity and semi-major axis"""
         # r is a scalar, but z can be a vector
         z = np.array(z,ndmin=1,copy=False)
         f = np.zeros(z.shape)
+        r = a*(1.0-e*np.cos(E))
         # case 1
         if (r < self.smax) and (r > self.smin):
             dl = -2.5*np.log10(z/r**2)

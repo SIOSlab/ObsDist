@@ -145,40 +145,46 @@ ax2.legend(loc=4)
 fig2.show()
 
 # f_R'(R') plot
-HRp /= numiter
-Rs = 0.5*(Redges[:-1]+Redges[1:])
-R = np.linspace(R_min,R_max,200)
-fR = pop.f_R(R)
-fRp = obs.f_Rp(R)
+if R_max > R_min:
+    HRp /= numiter
+    Rs = 0.5*(Redges[:-1]+Redges[1:])
+    R = np.linspace(R_min,R_max,200)
+    fR = pop.f_R(R)
+    fRp = obs.f_Rp(R)
 
-fig3 = plt.figure(3)
-ax3 = fig3.add_subplot(111)
-ax3.plot(Rs,HRp,'or',markerfacecolor='None',label='Monte Carlo')
-ax3.plot(R,fR,'r--',linewidth=2.0,label='Assumed')
-ax3.plot(R,fRp,'b-',linewidth=2.0,label=r'Observed')
-ax3.set_ylim(ymin=0.0)
-ax3.set_xlabel(r'$ R \; / \; R^\prime $ (AU)', fontsize=18)
-ax3.set_ylabel(r'$ f_{\bar{R}}\left(R\right) \; / \; f_{\bar{R}^\prime}\left(R^\prime\right) $', fontsize=18)
-ax3.tick_params(axis='both', which='major', labelsize=16)
-ax3.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
-ax3.legend()
-fig3.show()
+    fig3 = plt.figure(3)
+    ax3 = fig3.add_subplot(111)
+    ax3.plot(Rs,HRp,'or',markerfacecolor='None',label='Monte Carlo')
+    ax3.plot(R,fR,'r--',linewidth=2.0,label='Assumed')
+    ax3.plot(R,fRp,'b-',linewidth=2.0,label=r'Observed')
+    ax3.set_ylim(ymin=0.0)
+    ax3.set_xlabel(r'$ R \; / \; R^\prime $ (AU)', fontsize=18)
+    ax3.set_ylabel(r'$ f_{\bar{R}}\left(R\right) \; / \; f_{\bar{R}^\prime}\left(R^\prime\right) $', fontsize=18)
+    ax3.tick_params(axis='both', which='major', labelsize=16)
+    ax3.ticklabel_format(style='sci',scilimits=(0,0),axis='both')
+    ax3.legend()
+    fig3.show()
+else:
+    print 'Planetary radius is constant, no pdf plot generated'
 
 # f_p'(p') plot
-Hpp /= numiter
-ps = 0.5*(pedges[:-1]+pedges[1:])
-p = np.linspace(p_min,p_max,200)
-fp = pop.f_p(p)
-fpp = obs.f_pp(p)
+if p_max > p_min:
+    Hpp /= numiter
+    ps = 0.5*(pedges[:-1]+pedges[1:])
+    p = np.linspace(p_min,p_max,200)
+    fp = pop.f_p(p)
+    fpp = obs.f_pp(p)
 
-fig4 = plt.figure(4)
-ax4 = fig4.add_subplot(111)
-ax4.plot(ps,Hpp,'or',markerfacecolor='None',label='Monte Carlo')
-ax4.plot(p,fp,'r--',linewidth=2.0,label='Assumed')
-ax4.plot(p,fpp,'b-',linewidth=2.0,label=r'Observed')
-ax4.set_ylim(ymin=5.0)
-ax4.set_xlabel(r'$ p \; / \; p^\prime $', fontsize=18)
-ax4.set_ylabel(r'$ f_{\bar{p}}\left(p\right) \; / \; f_{\bar{p}^\prime}\left(p^\prime\right) $', fontsize=18)
-ax4.tick_params(axis='both', which='major', labelsize=16)
-ax4.legend(loc=4)
-fig4.show()
+    fig4 = plt.figure(4)
+    ax4 = fig4.add_subplot(111)
+    ax4.plot(ps,Hpp,'or',markerfacecolor='None',label='Monte Carlo')
+    ax4.plot(p,fp,'r--',linewidth=2.0,label='Assumed')
+    ax4.plot(p,fpp,'b-',linewidth=2.0,label=r'Observed')
+    ax4.set_ylim(ymin=5.0)
+    ax4.set_xlabel(r'$ p \; / \; p^\prime $', fontsize=18)
+    ax4.set_ylabel(r'$ f_{\bar{p}}\left(p\right) \; / \; f_{\bar{p}^\prime}\left(p^\prime\right) $', fontsize=18)
+    ax4.tick_params(axis='both', which='major', labelsize=16)
+    ax4.legend(loc=4)
+    fig4.show()
+else:
+    print 'Geometric albedo is constant, no pdf plot generated'
